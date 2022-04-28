@@ -1,37 +1,45 @@
 #!/usr/bin/env python3
 
-# imports
+from math import pi
+
 import rospy
-from rrp_ik_client import get_rrp_ik
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64
-from math import pi
-import numpy as np
+
+from rrp_ik_client import get_rrp_ik
 
 # Poses
 pose1 = [0.0, 0.77, 0.34]
 pose2 = [-0.345, 0.425, 0.24]
 pose3 = [0.67, -0.245, 0.14]
 pose4 = [0.77, 0.0, 0.39]
+poses = [pose1, pose2, pose3, pose4]
 
-# Run for every pose in a loop  # later
-# run client function to get desired joint states
-# des_states = get_rrp_ik(*pose1)
-des_states = get_rrp_ik(0.0, 0.77, 0.34)
+ROSPY_RATE = 150
 
 
 # Control logic
 class Controller:
-    def __init__(self, control_entity, p=0.0, d=0.0, i=0.0, set_point=0.0, rospy_rate=0):
+    def __init__(
+            self,
+            control_entity: str,
+            p: float = 0.0,
+            d: float = 0.0,
+            i: float = 0.0,
+            set_point: float = 0.0,
+            ):
         self.control_entity = control_entity
         self.Kp = p
         self.Kd = d
         self.Ki = i
-        self.dt = rospy_rate
+        self.dt = 1/ROSPY_RATE
         self.set_point = set_point  # reference (desired value)
         self.previous_error = 0
+        self.P_term = 0.0
+        self.I_term = 0.0
+        self.D_term = 0.0
 
-    def update(self, current_value):
+    def update(self, current_value: float) -> float:
         error = self.set_point - current_value
         if self.control_entity == "orientation":
             if error > pi:
@@ -39,19 +47,19 @@ class Controller:
             if error < -pi:
                 error += 2*pi
 
-        P_term = self.Kp * error
-        D_term = self.Kd * (error - self.previous_error) / self.dt
-        I_term = self.Ki * error * self.dt
+        self.P_term = self.Kp * error
+        self.D_term = self.Kd * (error - self.previous_error) / self.dt
+        self.I_term += self.Ki * error * self.dt
 
         self.previous_error = error
 
-        return P_term + D_term + I_term
+        return self.P_term + self.D_term + self.I_term
 
-    def update_set_point(self, set_point):
+    def update_set_point(self, set_point: float) -> None:
         self.set_point = set_point
         self.previous_error = 0
 
-    def set_pid(self, p=0.0, i=0.0, d=0.0):
+    def set_pid(self, p: float = 0.0, i: float = 0.0, d: float = 0.0) -> None:
         self.Kp = p
         self.Ki = i
         self.Kd = d
@@ -67,13 +75,17 @@ class RRP_bot:
         self.jnt2_topic = "/rrp/joint2_effort_controller/command"
         self.jnt3_topic = "/rrp/joint3_effort_controller/command"
 
-        self.rate = rospy.Rate(100)
+        self.jnt_pub1 = rospy.Publisher(self.jnt1_topic, Float64, queue_size=10)
+        self.jnt_pub2 = rospy.Publisher(self.jnt2_topic, Float64, queue_size=10)
+        self.jnt_pub3 = rospy.Publisher(self.jnt3_topic, Float64, queue_size=10)
 
-        self.pos_control = Controller("position")
-        self.orient_control = Controller("orientation")
+        self.pos_control3 = Controller("position")
+        self.orient_control1 = Controller("orientation")
+        self.orient_control2 = Controller("orientation")
 
         # Get desired joint states
         self.des_states = get_rrp_ik(x, y, z)
+        print("Desired state:", self.des_states)
 
         self.actual_states = []
         self.logging_counter = 0
@@ -99,35 +111,48 @@ class RRP_bot:
     def subs_callback(self, data):
         self.actual_states = data.position
 
-    def move_to_orientation(self, jnt_idx, topic, kp, ki, kd):
-        des_state = self.des_states[jnt_idx]
+    def control(self, kp1, ki1, kd1, kp2, ki2, kd2, kp3, ki3, kd3):
 
-        print("Actual:", self.actual_states)
-        act_state = self.actual_states[jnt_idx]
+        self.orient_control1.set_pid(kp1, ki1, kd1)
+        self.orient_control2.set_pid(kp2, ki2, kd2)
+        self.pos_control3.set_pid(kp3, ki3, kd3)
 
-        self.orient_control.set_pid(kp, ki, kd)
-        self.orient_control.update_set_point(des_state)
+        des_state1 = self.des_states[0]
+        des_state2 = self.des_states[1]
+        des_state3 = self.des_states[2]
 
+        self.orient_control1.update_set_point(des_state1)
+        self.orient_control2.update_set_point(des_state2)
+        self.pos_control3.update_set_point(des_state3)
+
+        rate = rospy.Rate(ROSPY_RATE)
         while not rospy.is_shutdown():
-            control_input = self.orient_control.update(act_state)
-            jnt_pub = rospy.Publisher(topic, Float64, queue_size=10)
-            jnt_pub.publish(control_input)
-            if self.is_close("orientation", des_state, act_state):
-                self.stop()
+            act_state1 = self.actual_states[0]
+            print("Actual state1:", act_state1)
+            act_state2 = self.actual_states[1]
+            print("Actual state2:", act_state2)
+            act_state3 = self.actual_states[2]
+            print("Actual state3:", act_state3)
 
-    def move_to_position(self, jnt_idx, topic, kp, ki, kd):
-        des_state = self.des_states[jnt_idx]
-        act_state = self.actual_states[jnt_idx]
+            control_input1 = self.orient_control1.update(act_state1)
+            print("Control ip1:", control_input1)
+            control_input2 = self.orient_control2.update(act_state2)
+            print("Control ip2:", control_input2)
+            control_input3 = self.pos_control3.update(act_state3)
+            print("Control ip3:", control_input3)
 
-        self.pos_control.set_pid(kp, ki, kd)
-        self.pos_control.update_set_point(des_state)
+            self.jnt_pub1.publish(control_input1)
+            self.jnt_pub2.publish(control_input2)
+            self.jnt_pub3.publish(control_input3)
 
-        while not rospy.is_shutdown():
-            control_input = self.orient_control.update(act_state)
-            jnt_pub = rospy.Publisher(topic, Float64, queue_size=10)
-            jnt_pub.publish(control_input)
-            if self.is_close("orientation", des_state, act_state):
-                self.stop()
+            if self.is_close("orientation", des_state1, act_state1):
+                self.stop(self.jnt_pub1)
+            if self.is_close("orientation", des_state2, act_state2):
+                self.stop(self.jnt_pub2)
+            if self.is_close("position", des_state3, act_state3):
+                self.stop(self.jnt_pub3)
+
+            rate.sleep()
 
     @staticmethod
     def stop(jnt_pub):
@@ -141,10 +166,8 @@ class RRP_bot:
 
     def run(self):
         from time import sleep
-        sleep(3)
-        self.move_to_orientation(0, self.jnt1_topic, 1, 2, 3)
-        self.move_to_orientation(1, self.jnt2_topic, 3, 4, 6)
-        self.move_to_position(2, self.jnt3_topic, 1, 1, 1)
+        sleep(5)
+        self.control(0.5, 0.08, 5, 0.5, 0.08, 4, 0, 0, 0)
 
 
 if __name__ == "__main__":
