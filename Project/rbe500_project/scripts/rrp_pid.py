@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from math import pi
+from typing import List, Tuple
 
 import rospy
 from sensor_msgs.msg import JointState
@@ -67,9 +68,12 @@ class Controller:
 
 # Publish input commands to rrp
 class RRP_bot:
-    def __init__(self, x, y, z):
+    def __init__(self, positions: List[Tuple]):
         rospy.init_node("rrp_bot_move")
         rospy.loginfo("Press Ctrl + C to terminate")
+
+        self.poses = positions
+        self.des_states = None
 
         self.jnt1_topic = "/rrp/joint1_effort_controller/command"
         self.jnt2_topic = "/rrp/joint2_effort_controller/command"
@@ -82,10 +86,6 @@ class RRP_bot:
         self.pos_control3 = Controller("position")
         self.orient_control1 = Controller("orientation")
         self.orient_control2 = Controller("orientation")
-
-        # Get desired joint states
-        self.des_states = get_rrp_ik(x, y, z)
-        print("Desired state:", self.des_states)
 
         self.actual_states = []
         self.logging_counter = 0
@@ -112,6 +112,10 @@ class RRP_bot:
         self.actual_states = data.position
 
     def control(self, kp1, ki1, kd1, kp2, ki2, kd2, kp3, ki3, kd3):
+
+        reached_1 = False
+        reached_2 = False
+        reached_3 = False
 
         self.orient_control1.set_pid(kp1, ki1, kd1)
         self.orient_control2.set_pid(kp2, ki2, kd2)
@@ -146,16 +150,26 @@ class RRP_bot:
             self.jnt_pub3.publish(control_input3)
 
             if self.is_close("orientation", des_state1, act_state1):
+                reached_1 = True
                 self.stop(self.jnt_pub1)
             if self.is_close("orientation", des_state2, act_state2):
+                reached_2 = True
                 self.stop(self.jnt_pub2)
             if self.is_close("position", des_state3, act_state3):
+                reached_3 = True
                 self.stop(self.jnt_pub3)
+
+            if reached_1 and reached_2 and reached_3:
+                print("Reached first pose!")
+                break
 
             rate.sleep()
 
     @staticmethod
     def stop(jnt_pub):
+        jnt_pub.publish(0.0)
+        jnt_pub.publish(0.0)
+        jnt_pub.publish(0.0)
         jnt_pub.publish(0.0)
 
     @staticmethod
@@ -167,8 +181,18 @@ class RRP_bot:
     def run(self):
         from time import sleep
         sleep(5)
-        self.control(0.5, 0.08, 5, 0.5, 0.08, 4, 0, 0, 0)
+        for pose in self.poses:
+            x1, y1, z1 = pose
+
+            # Get desired joint states
+            self.des_states = get_rrp_ik(x1, y1, z1)
+            print("Desired state:", self.des_states)
+
+            self.control(0.25, 0.02, 0.45, 0.25, 0.0125, 0.1, 0.25, 0.01, 0.1)
 
 
 if __name__ == "__main__":
-    RRP_bot(0.0, 0.77, 0.34)
+    RRP_bot(
+        [(0.0, 0.77, 0.34), (-0.345, 0.425, 0.24)]
+    )
+    
