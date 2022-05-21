@@ -101,50 +101,40 @@ class RRP_bot:
         self.orient_control2.set_pid(kp2, ki2, kd2)
         self.pos_control3.set_pid(kp3, ki3, kd3)
 
-        des_state1 = self.des_states[0]
-        des_state2 = self.des_states[1]
-        des_state3 = self.des_states[2]
-
-        self.orient_control1.update_set_point(des_state1)
-        self.orient_control2.update_set_point(des_state2)
-        self.pos_control3.update_set_point(des_state3)
+        self.orient_control1.update_set_point(self.des_states[0])
+        self.orient_control2.update_set_point(self.des_states[1])
+        self.pos_control3.update_set_point(self.des_states[2])
 
         rate = rospy.Rate(ROSPY_RATE)
         while not rospy.is_shutdown():
-            act_state1 = self.actual_states[0]
-            act_state2 = self.actual_states[1]
-            act_state3 = self.actual_states[2]
 
-            control_input1 = self.orient_control1.update(act_state1)
-            control_input2 = self.orient_control2.update(act_state2)
-            control_input3 = self.pos_control3.update(act_state3)
+            control_input1 = self.orient_control1.update(self.actual_states[0])
+            control_input2 = self.orient_control2.update(self.actual_states[1])
+            control_input3 = self.pos_control3.update(self.actual_states[2])
 
             self.jnt_pub1.publish(control_input1)
             self.jnt_pub2.publish(control_input2)
             self.jnt_pub3.publish(control_input3)
 
-            if self.is_close("orientation", des_state1, act_state1):
+            if self.is_close("orientation", self.des_states[0], self.actual_states[0]):
                 reached_1 = True
                 self.stop(self.jnt_pub1)
-            if self.is_close("orientation", des_state2, act_state2):
+            if self.is_close("orientation", self.des_states[1], self.actual_states[1]):
                 reached_2 = True
                 self.stop(self.jnt_pub2)
-            if self.is_close("position", des_state3, act_state3):
+            if self.is_close("position", self.des_states[2], self.actual_states[2]):
                 reached_3 = True
                 self.stop(self.jnt_pub3)
 
             if reached_1 and reached_2 and reached_3:
-                print("Reached first pose!")
+                print("Reached pose!")
                 break
-
             rate.sleep()
 
     @staticmethod
     def stop(jnt_pub):
-        jnt_pub.publish(0.0)
-        jnt_pub.publish(0.0)
-        jnt_pub.publish(0.0)
-        jnt_pub.publish(0.0)
+        for _ in range(4):
+            jnt_pub.publish(0.0)
 
     @staticmethod
     def is_close(entity, desired, actual, orient_tol=0.15, pos_tol=0.002):
@@ -153,20 +143,19 @@ class RRP_bot:
         return True if error < tol else False
 
     def run(self):
-        sleep(3)
+        sleep(3)  # To allow subscriber sufficient time for setup
         for pose in self.poses:
             x1, y1, z1 = pose
-
             self.des_states = get_rrp_ik(x1, y1, z1)
             self.control(0.25, 0.02, 0.45, 0.25, 0.0125, 0.1, 0.25, 0.01, 0.1)
 
 
 if __name__ == "__main__":
-    RRP_bot([
-        (0.0, 0.77, 0.34),
-        (-0.345, 0.425, 0.24),
-        (0.67, -0.245, 0.14),
-        (0.77, 0.0, 0.39)
-    ])
-    
-
+    RRP_bot(
+        [
+            (0.0, 0.77, 0.34),
+            (-0.345, 0.425, 0.24),
+            (0.67, -0.245, 0.14),
+            (0.77, 0.0, 0.39)
+        ]
+    )
