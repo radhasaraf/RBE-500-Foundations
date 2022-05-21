@@ -95,7 +95,6 @@ class RRP_bot:
         rospy.Subscriber("/rrp/joint_states", JointState, self.subs_callback)
 
         try:
-            print("Will try and run now!")
             self.run()
         except rospy.ROSInterruptException:
             rospy.loginfo("Action terminated.")
@@ -132,18 +131,12 @@ class RRP_bot:
         rate = rospy.Rate(ROSPY_RATE)
         while not rospy.is_shutdown():
             act_state1 = self.actual_states[0]
-            print("Actual state1:", act_state1)
             act_state2 = self.actual_states[1]
-            print("Actual state2:", act_state2)
             act_state3 = self.actual_states[2]
-            print("Actual state3:", act_state3)
 
             control_input1 = self.orient_control1.update(act_state1)
-            print("Control ip1:", control_input1)
             control_input2 = self.orient_control2.update(act_state2)
-            print("Control ip2:", control_input2)
             control_input3 = self.pos_control3.update(act_state3)
-            print("Control ip3:", control_input3)
 
             self.jnt_pub1.publish(control_input1)
             self.jnt_pub2.publish(control_input2)
@@ -186,7 +179,6 @@ class RRP_bot:
 
             # Get desired joint states
             self.des_states = get_rrp_ik(x1, y1, z1)
-            print("Desired state:", self.des_states)
 
             self.control(0.25, 0.02, 0.45, 0.25, 0.0125, 0.1, 0.25, 0.01, 0.1)
 
@@ -196,3 +188,4 @@ if __name__ == "__main__":
         [(0.0, 0.77, 0.34), (-0.345, 0.425, 0.24)]
     )
     
+
