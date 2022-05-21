@@ -95,8 +95,6 @@ class RRP_bot:
 
     def control(self, kp1, ki1, kd1, kp2, ki2, kd2, kp3, ki3, kd3):
 
-        reached_1, reached_2, reached_3 = False, False, False
-
         self.orient_control1.set_pid(kp1, ki1, kd1)
         self.orient_control2.set_pid(kp2, ki2, kd2)
         self.pos_control3.set_pid(kp3, ki3, kd3)
@@ -107,6 +105,8 @@ class RRP_bot:
 
         rate = rospy.Rate(ROSPY_RATE)
         while not rospy.is_shutdown():
+
+            reached_1, reached_2, reached_3 = False, False, False
 
             control_input1 = self.orient_control1.update(self.actual_states[0])
             control_input2 = self.orient_control2.update(self.actual_states[1])
