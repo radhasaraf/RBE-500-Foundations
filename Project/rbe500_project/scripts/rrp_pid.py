@@ -119,23 +119,20 @@ class RRP_bot:
 
             if self.is_close("orientation", self.des_states[0], self.actual_states[0]):
                 reached_1 = True
-                self.stop(self.jnt_pub1)
             if self.is_close("orientation", self.des_states[1], self.actual_states[1]):
                 reached_2 = True
-                self.stop(self.jnt_pub2)
             if self.is_close("position", self.des_states[2], self.actual_states[2]):
                 reached_3 = True
-                self.stop(self.jnt_pub3)
 
             if reached_1 and reached_2 and reached_3:
                 print("Reached pose!")
+                self.jnt_pub1.publish(-control_input1)
+                self.jnt_pub2.publish(-control_input2)
+                self.jnt_pub3.publish(-control_input3)
+                sleep(1)
                 break
-            rate.sleep()
 
-    @staticmethod
-    def stop(jnt_pub):
-        for _ in range(4):
-            jnt_pub.publish(0.0)
+            rate.sleep()
 
     @staticmethod
     def is_close(entity, desired, actual, orient_tol=0.15, pos_tol=0.002):
