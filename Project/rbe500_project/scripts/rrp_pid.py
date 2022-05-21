@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from math import pi
 from time import sleep
 from typing import List, Tuple
 
@@ -15,14 +14,8 @@ ROSPY_RATE = 150
 # Control logic
 class Controller:
     def __init__(
-            self,
-            control_entity: str,
-            p: float = 0.0,
-            i: float = 0.0,
-            d: float = 0.0,
-            set_point: float = 0.0,
-            ):
-        self.control_entity = control_entity
+        self, p: float = 0.0, i: float = 0.0, d: float = 0.0, set_point: float = 0.0
+    ):
         self.Kp = p
         self.Ki = i
         self.Kd = d
@@ -36,11 +29,6 @@ class Controller:
 
     def update(self, current_value: float) -> float:
         error = self.set_point - current_value
-        if self.control_entity == "orientation":
-            if error > pi:
-                error -= 2*pi
-            if error < -pi:
-                error += 2*pi
 
         self.P_term = self.Kp * error
         self.D_term = self.Kd * (error - self.previous_error) / self.dt
@@ -79,9 +67,9 @@ class RRP_bot:
             "/rrp/joint3_effort_controller/command", Float64, queue_size=10
         )
 
-        self.pos_control3 = Controller("position")
-        self.orient_control1 = Controller("orientation")
-        self.orient_control2 = Controller("orientation")
+        self.orient_control1 = Controller()
+        self.orient_control2 = Controller()
+        self.pos_control3 = Controller()
 
         # Subscribe to joint states
         rospy.Subscriber("/rrp/joint_states", JointState, self.subs_callback)
