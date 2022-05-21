@@ -41,6 +41,7 @@ class Controller:
     def update_set_point(self, set_point: float) -> None:
         self.set_point = set_point
         self.previous_error = 0
+        self.I_term = 0
 
     def set_pid(self, p: float = 0.0, i: float = 0.0, d: float = 0.0) -> None:
         self.Kp = p
