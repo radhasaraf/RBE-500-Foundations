@@ -3,6 +3,7 @@
 from time import sleep
 from typing import List, Tuple
 
+import numpy as np
 import rospy
 from rrp_ik_client import get_rrp_ik
 from sensor_msgs.msg import JointState
@@ -15,7 +16,7 @@ ROSPY_RATE = 150
 class Controller:
     def __init__(
         self, p: float = 0.0, i: float = 0.0, d: float = 0.0, set_point: float = 0.0
-    ):
+    ) -> None:
         self.Kp = p
         self.Ki = i
         self.Kd = d
@@ -76,23 +77,37 @@ class RRP_bot:
         rospy.Subscriber("/rrp/joint_states", JointState, self.subs_callback)
 
         self.logging_counter = 0
-        self.trajectory = list()
+
+        self.trajectory1 = list()
+        self.trajectory2 = list()
+        self.trajectory3 = list()
 
         try:
             self.run()
         except rospy.ROSInterruptException:
             rospy.loginfo("Action terminated.")
         finally:
-            # save trajectory into csv file
-            # np.savetxt(
-            #     "trajectory.csv",
-            #     np.array(self.trajectory),
-            #     fmt="%f", delimiter=","
-            # )
-            pass
+            # save joint trajectories into csv file
+            np.savetxt(
+                "trajectory1.csv", np.array(self.trajectory1), fmt="%f", delimiter=","
+            )
+            np.savetxt(
+                "trajectory2.csv", np.array(self.trajectory2), fmt="%f", delimiter=","
+            )
+            np.savetxt(
+                "trajectory3.csv", np.array(self.trajectory3), fmt="%f", delimiter=","
+            )
 
     def subs_callback(self, data):
         self.actual_states = data.position
+
+        # logging once every 25 times
+        self.logging_counter += 1
+        if self.logging_counter == 25:
+            self.logging_counter = 0
+            self.trajectory1.append(self.actual_states[0])
+            self.trajectory2.append(self.actual_states[1])
+            self.trajectory3.append(self.actual_states[2])
 
     def control(self, kp1, ki1, kd1, kp2, ki2, kd2, kp3, ki3, kd3):
 
