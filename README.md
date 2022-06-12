@@ -1,7 +1,7 @@
 # RBE-500-Foundations
 Holds my classwork/homework for the foundations course in Robotics at WPI
 
-#### Course Project
+### Course Project
 
 The objective of this project is to develop a joint space position
 control for a 3-DOF revolute-revolute-prismatic (RRP) robot
@@ -18,15 +18,14 @@ joint of the robot is controlled via a separate PID controller.
 
 ![](/Project/media/joint_space_pid_control.gif)
 
-
-#### Prerequisites
+### Prerequisites
 
 ```
 sudo apt-get install ros-noetic-ros-control ros-noetic-ros-controllers
 sudo apt-get install ros-noetic-gazebo-ros-pkgs ros-noetic-gazebo-ros-control
 ```
 
-#### How to use
+### How to use
 
 1. Place the ros packages(folder- Project/rbe500_project, Project/rrp_robot)
    into the src directory of your catkin workspace.
@@ -56,3 +55,22 @@ sudo apt-get install ros-noetic-gazebo-ros-pkgs ros-noetic-gazebo-ros-control
    ```
    roslaunch rbe500_project rrp.launch
    ```
+   
+6. To generate trajectory plots from your workspace dir
+   ```
+   python src/rbe500_project/scripts/visualize.py
+   ```
+
+### Trajectory plots over time
+
+#### Joint 1
+
+![](/Project/media/joint1.jpg)
+
+#### Joint 2
+
+![](/Project/media/joint2.jpg)
+
+#### Joint 3
+
+![](/Project/media/joint3.jpg)
