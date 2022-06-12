@@ -5,9 +5,10 @@ from typing import List, Tuple
 
 import numpy as np
 import rospy
-from rrp_ik_client import get_rrp_ik
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64
+
+from rrp_ik_client import get_rrp_ik
 
 ROSPY_RATE = 150
 

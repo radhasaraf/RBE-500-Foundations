@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<robot>
+
+  <!-- ros_control plugin -->
+  <gazebo>
+    <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+      <robotNamespace>/rrp</robotNamespace>
+      <robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType>
+      <legacyModeNS>true</legacyModeNS>
+    </plugin>
+  </gazebo>
+
+  <!-- For gazebo colors -->
+  <gazebo reference="base">
+    <material>Gazebo/White</material>
+  </gazebo>
+
+  <!-- Link1 -->
+  <gazebo reference="revolute1">
+    <material>Gazebo/Grey</material>
+  </gazebo>
+
+  <gazebo reference="link1">
+    <material>Gazebo/White</material>
+  </gazebo>
+
+  <!-- Link2 -->
+  <gazebo reference="revolute2">
+    <material>Gazebo/Grey</material>
+  </gazebo>
+
+  <gazebo reference="link2">
+    <material>Gazebo/White</material>
+  </gazebo>
+
+  <!-- Link3 -->
+  <gazebo reference="prismatic3">
+    <material>Gazebo/Grey</material>
+  </gazebo>
+
+  <gazebo reference="link3">
+    <material>Gazebo/White</material>
+  </gazebo>
+
+</robot>
