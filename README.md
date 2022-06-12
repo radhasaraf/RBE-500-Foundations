@@ -16,7 +16,7 @@ to move each joint to the desired configuration. The robot joints are
 controlled using an independent joint control framework, that is, each
 joint of the robot is controlled via a separate PID controller.
 
-![](/home/radha/Downloads/joint_space_pid_control.gif)
+![](/Project/media/joint_space_pid_control.gif)
 
 
 #### Prerequisites
